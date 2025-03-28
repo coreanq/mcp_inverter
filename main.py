@@ -1,7 +1,11 @@
-import os, sys, logging
+import os, sys
 import pandas as pd
 from pydantic import BaseModel
-from fastmcp import FastMCPServer, Resource, TextContent, Content
+from mcp.server.fastmcp import FastMCP 
+
+import logging
+from dotenv import load_dotenv
+load_dotenv()  # load environment variables from .env
 
 # Set up logging
 logging.basicConfig(
@@ -16,7 +20,7 @@ EXCEL_FILE_PATH = os.path.join(os.path.dirname(__file__), 'ParameterData.ods')
 
 # 엑셀 파일 읽기 (한 번만 로드)
 try:
-    df = pd.read_excel(EXCEL_FILE_PATH)
+    df = pd.read_excel(EXCEL_FILE_PATH, engine='odf')
     logger.info(f"엑셀 파일 '{EXCEL_FILE_PATH}' 로드 완료.")
 except FileNotFoundError:
     logger.error(f"오류: '{EXCEL_FILE_PATH}' 파일을 찾을 수 없습니다.")
@@ -27,7 +31,7 @@ except Exception as e:
 
 
 ################################################################################################################################
-app = FastMCPServer("s300 commander", description="A server that transmits user requests as communication addresses/values to send commands.")
+app = FastMCP("s300 commander", description="A server that transmits user requests as communication addresses/values to send commands.")
 
 class ParameterData(BaseModel):
     parameter_name: str
