@@ -32,7 +32,7 @@ logger.setLevel(logging.INFO) # 필요에 따라 로그 레벨을 설정합니�
 EXCEL_FILE_PATH = os.path.join(os.path.dirname(__file__), 'ParameterData.ods')
 
 # 엑셀 파일 읽기 (한 번만 로드)
-excel_data = None
+json_data = None
 try:
     # read all sheet
     xls = pd.read_excel(EXCEL_FILE_PATH, sheet_name=None, engine='odf')
@@ -63,23 +63,8 @@ app = FastMCP("s300 commander", description="A server that transmits user reques
 #     return pdf_data
 
 @app.resource(uri="file:///ParameterData", mime_type="application/json")
-def read_parameter_text() -> bytes:
+def read_parameter_text() -> str:
     return json_data
-
-
-# basic prompt can select from claude desktop menu
-@app.prompt()
-def find_parameter(parameter_name: str) -> str:
-    """search parameter_name in file:///ParameterData's 설명 column, 
-       then 통신주소 column value return
-
-    Args:
-        parameter_name (str): parameter name 
-
-    Returns:
-        str: communication address
-    """
-    return f"search {parameter_name} in file:///ParameterData's 설명 column, then 통신주소 column value return"
 
 ################################################################################################################################
 @app.tool()
