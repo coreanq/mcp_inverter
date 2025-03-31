@@ -7,7 +7,7 @@ app = FastAPI()
 # 웹훅 데이터 모델 정의 (선택 사항이지만 권장)
 class WebhookPayload(BaseModel):
     event: str
-    data: Dict
+    data: str
 
 @app.post("/webhook")
 async def webhook_listener(payload: WebhookPayload):
@@ -27,4 +27,4 @@ async def webhook_listener_raw(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="localhost", port=8000)
