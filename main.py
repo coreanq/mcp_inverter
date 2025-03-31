@@ -2,6 +2,7 @@ import os, json
 import pandas as pd
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.prompts import base
+import modbus  as md
 
 
 import logging
@@ -35,10 +36,16 @@ EXCEL_FILE_PATH = os.path.join(os.path.dirname(__file__), 'ParameterData.ods')
 json_data = None
 try:
     # read all sheet
-    xls = pd.read_excel(EXCEL_FILE_PATH, sheet_name=None, engine='odf')
+    xls = pd.read_excel(EXCEL_FILE_PATH, sheet_name=None)
 
-    # convert to json
-    json_data = {sheet: df.to_dict(orient='records') for sheet, df in xls.items()}
+    # 제외할 컬럼 리스트 정의
+    columns_to_exclude = ['파라미터타입', 'Title Enum', 'Title', 'At(@)Value', 'SourceDepended', '운전 중변경금지', '0 입력가능', '그래픽모드', 'Unsigned', 'maxinfo']
+
+    # convert to json (특정 컬럼 제외)
+    json_data = {
+        sheet: df.drop(columns=columns_to_exclude, errors='ignore').to_dict(orient='records') 
+        for sheet, df in xls.items()
+    }
 
     # JSON 파일로 저장
     with open("output.json", "w", encoding="utf-8") as f:
@@ -51,6 +58,10 @@ except FileNotFoundError:
 except Exception as e:
     logger.error(f"오류: 엑셀 파일 읽기 오류 - {e}")
     df = None
+    
+
+if( md.connect_modbus() == False ):
+    exit()
 
 ################################################################################################################################
 app = FastMCP("s300 commander", description="A server that transmits user requests as communication addresses/values to send commands.", 
@@ -68,19 +79,25 @@ def read_parameter_text() -> str:
 
 ################################################################################################################################
 @app.tool()
-def get_parameter_address(parameter_name: str) -> str:
-    """ search parameter_name in file:///ParameterData's 설명 column, 
-        then 통신주소 column value return
+def write_parameter_data(parameter_name: str, parameter_address: int,parameter_value: int, form_msg: str, unit: str) -> str:
+    """ write parameter data to parameter_address 
+    that info is in json_data
 
     Args:
         parameter_name (str): parameter name
-
+        parameter_address (str): parameter address
+        parameter_value (str): parameter value
+        form_msg (str): form message
+        unit (str): unit
     Returns:
-        str: parameter address
-    """
+        str: success or fail
+    """    
+    logger.info(f"write_parameter_data: {parameter_name}, {parameter_address}, {parameter_value}")
+    md.send_modbus(address=parameter_address, value=parameter_value, slave_id=1)
     return "success"
 
 
+
 if __name__ == "__main__":
-    app.run()
     logger.info("Hello from mcp-server!")
+    app.run()
