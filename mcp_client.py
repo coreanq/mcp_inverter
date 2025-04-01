@@ -133,10 +133,12 @@ messages = []
 
 async def main():
     agent,mcp_servers = await setup_agent()
+    
 
     while True:
         user_input = input("\nYou: ")
         messages.append({"role": "user", "content": user_input})
+
         result = Runner.run_streamed(
             agent, 
             input=messages
@@ -158,14 +160,28 @@ async def main():
                 elif event.item.type == "tool_call_output_item":
                     print(f"-- Tool output: {event.item.output}")
                 elif event.item.type == "message_output_item":
-                    print(f"-- Message output:\n {ItemHelpers.text_message_output(event.item)}")
+                    response_text = ItemHelpers.text_message_output(event.item)
+                    print(f"-- Message output:\n {response_text}", flush= True)
+                    messages.append( { "role": "assistant", "content": response_text })
                 else:
                     pass  # Ignore other event types
 
         print("=== Run complete ===\n\n")
+        # async for event in result.stream_events():
+        #     print(event)
+        #     # LLM 응답 토큰 스트리밍
+        #     if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+        #         response_text += event.data.delta or ""
+        #         print(f"Assistant: {response_text}", end="", flush= True)
+        #         messages.append({"role": "assistant", "content": response_text})
+
+        #     # 도구 이벤트와 메시지 완료 처리
+        #     elif event.type == "run_item_stream_event":
+        #         item = event.item
+        #         if item.type == "tool_call_item":
+        #             tool_name = item.raw_item.name
+        #             print(f"🛠 도구 활용: `{tool_name}`", flush= True)
 
 if __name__ == "__main__":
     load_backend_data()
     asyncio.run(main())
-    # main()
-    # asyncio.run(process_user_message() )
