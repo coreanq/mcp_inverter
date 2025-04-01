@@ -47,7 +47,7 @@ def load_backend_data():
     global json_data
     try:
         with open(DATABASE_FILE, "r", encoding="utf-8") as f:
-            json_data = json.load(f)
+            json_data = json.sdfload(f)
         
         logger.info(f"DATABASE 파일 '{DATABASE_FILE}' 로드 완료.")
     except FileNotFoundError:
@@ -95,7 +95,7 @@ async def setup_agent():
         name="Assistant",
         instructions="너는 사용자의 질문을 분석해서 mcp server 를 사용해 요청사항을 수행하는 에이전트야",
         model="gpt-4o-mini",
-        mcp_servers=mcp_servers
+        mcp_servers=[mcp_servers],
     )
     return agent,mcp_servers
 
