@@ -4,7 +4,7 @@ import pandas as pd
 import asyncio
 import streamlit as st
 from openai.types.responses import ResponseTextDeltaEvent
-from agents import Agent, Runner
+from agents import Agent, Runner, ItemHelpers
 from agents.mcp import MCPServerStdio
 
 
@@ -47,7 +47,7 @@ def load_backend_data():
     global json_data
     try:
         with open(DATABASE_FILE, "r", encoding="utf-8") as f:
-            json_data = json.sdfload(f)
+            json_data = json.load(f)
         
         logger.info(f"DATABASE 파일 '{DATABASE_FILE}' 로드 완료.")
     except FileNotFoundError:
@@ -95,7 +95,7 @@ async def setup_agent():
         name="Assistant",
         instructions="너는 사용자의 질문을 분석해서 mcp server 를 사용해 요청사항을 수행하는 에이전트야",
         model="gpt-4o-mini",
-        mcp_servers=[mcp_servers],
+        mcp_servers=mcp_servers,
     )
     return agent,mcp_servers
 
@@ -129,32 +129,40 @@ async def process_user_message():
     for server in mcp_servers:
         await server.__aexit__(None, None, None)
 
+messages = []
+
 async def main():
     agent,mcp_servers = await setup_agent()
-    
-    messages = []
-    user_input = input("\nYou: ")
-    messages.append({"role": "user", "content": user_input})
-    result = Runner.run_streamed(
-        agent, 
-        input=messages
-    )
-    
 
+    while True:
+        user_input = input("\nYou: ")
+        messages.append({"role": "user", "content": user_input})
+        result = Runner.run_streamed(
+            agent, 
+            input=messages
+        )
         
-    async for event in result.stream_events():
-        # LLM 응답 토큰 스트리밍
-        if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
-            response_text += event.data.delta or ""
-            print(f"Assistant: {response_text}", end="")
-            messages.append({"role": "assistant", "content": response_text})
+        response_text = '' 
+        async for event in result.stream_events():
+            # We'll ignore the raw responses event deltas
+            if event.type == "raw_response_event":
+                continue
+            # When the agent updates, print that
+            elif event.type == "agent_updated_stream_event":
+                # print(f"Agent updated: {event.new_agent.name}")
+                continue
+            # When items are generated, print them
+            elif event.type == "run_item_stream_event":
+                if event.item.type == "tool_call_item":
+                    print("-- Tool was called")
+                elif event.item.type == "tool_call_output_item":
+                    print(f"-- Tool output: {event.item.output}")
+                elif event.item.type == "message_output_item":
+                    print(f"-- Message output:\n {ItemHelpers.text_message_output(event.item)}")
+                else:
+                    pass  # Ignore other event types
 
-        # 도구 이벤트와 메시지 완료 처리
-        elif event.type == "run_item_stream_event":
-            item = event.item
-            if item.type == "tool_call_item":
-                tool_name = item.raw_item.name
-                st.toast(f"🛠 도구 활용: `{tool_name}`")
+        print("=== Run complete ===\n\n")
 
 if __name__ == "__main__":
     load_backend_data()
