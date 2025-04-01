@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+        "s300_commander": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "d:\\lsis\\1_git\\mcp_server",
+                "run",
+                "main.py"
+            ]
+        }
+    } 
+}

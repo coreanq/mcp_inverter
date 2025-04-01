@@ -5,6 +5,7 @@ from mcp.server.fastmcp.prompts import base
 import modbus  as md
 
 
+################################################################################################################################
 import logging
 from dotenv import load_dotenv
 load_dotenv()  # load environment variables from .env
@@ -30,39 +31,8 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO) # 필요에 따라 로그 레벨을 설정합니다.
 
 ################################################################################################################################
-EXCEL_FILE_PATH = os.path.join(os.path.dirname(__file__), 'ParameterData.ods')
-
-# 엑셀 파일 읽기 (한 번만 로드)
-json_data = None
-try:
-    # read all sheet
-    xls = pd.read_excel(EXCEL_FILE_PATH, sheet_name=None)
-
-    # 제외할 컬럼 리스트 정의
-    columns_to_exclude = ['파라미터타입', 'Title Enum', 'Title', 'At(@)Value', 'SourceDepended', '운전 중변경금지', '0 입력가능', '그래픽모드', 'Unsigned', 'maxinfo']
-
-    # convert to json (특정 컬럼 제외)
-    json_data = {
-        sheet: df.drop(columns=columns_to_exclude, errors='ignore').to_dict(orient='records') 
-        for sheet, df in xls.items()
-    }
-
-    # JSON 파일로 저장
-    with open("output.json", "w", encoding="utf-8") as f:
-        json.dump(json_data, f, ensure_ascii=False, indent=2)
-
-    logger.info(f"엑셀 파일 '{EXCEL_FILE_PATH}' 로드 완료.")
-except FileNotFoundError:
-    logger.error(f"오류: '{EXCEL_FILE_PATH}' 파일을 찾을 수 없습니다.")
-    df = None
-except Exception as e:
-    logger.error(f"오류: 엑셀 파일 읽기 오류 - {e}")
-    df = None
-    
-
 if( md.connect_modbus() == False ):
     exit()
-
 ################################################################################################################################
 app = FastMCP("s300 commander", description="A server that transmits user requests as communication addresses/values to send commands.", 
               dependencies=["pandas"])
@@ -72,10 +42,6 @@ app = FastMCP("s300 commander", description="A server that transmits user reques
 # @app.resource(uri="file:///s300_common_address.pdf", mime_type="application/pdf")
 # def read_parameter_data() -> bytes:
 #     return pdf_data
-
-@app.resource(uri="file:///ParameterData", mime_type="application/json")
-def read_parameter_text() -> str:
-    return json_data
 
 ################################################################################################################################
 @app.tool()
